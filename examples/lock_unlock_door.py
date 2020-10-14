@@ -26,7 +26,7 @@ LOCK = 2
 UNLOCK_ANGLE = 180
 LOCK_ANGLE = 0
 
-SERVO_PIN = 11
+SERVO_PIN = 14
 PWM_FREQ = 50
 
 # Initial state is locked
