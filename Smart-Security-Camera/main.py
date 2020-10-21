@@ -3,7 +3,6 @@ import sys
 from mail import sendEmail
 from flask import Flask, render_template, Response
 from camera import VideoCamera
-from flask_basicauth import BasicAuth
 import time
 import threading
 
@@ -13,11 +12,7 @@ object_classifier = cv2.CascadeClassifier("models/facial_recognition_model.xml")
 
 # App Globals (do not edit)
 app = Flask(__name__)
-app.config['BASIC_AUTH_USERNAME'] = 'CHANGE_ME_USERNAME'
-app.config['BASIC_AUTH_PASSWORD'] = 'CHANGE_ME_PASSWORD'
-app.config['BASIC_AUTH_FORCE'] = True
 
-basic_auth = BasicAuth(app)
 last_epoch = 0
 
 def check_for_objects():
@@ -34,13 +29,12 @@ def check_for_objects():
             print("Error sending email: ", sys.exc_info()[0])
 
 @app.route('/')
-@basic_auth.required
 def index():
     return render_template('index.html')
 
 def gen(camera):
     while True:
-        # frame = camera.get_frame() if we don't want to draw a box
+        # frame = camera.get_frame() # if we don't want to draw a box
         frame, _ = camera.get_object(object_classifier)
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n\r\n')
