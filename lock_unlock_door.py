@@ -71,12 +71,13 @@ def move_servo_to_angle(angle):
 
 
 def get_duty_cycle(angle):
-    return angle / 18 + 2
+    return angle / 18 + 2.5
 
 
 if __name__ == "__main__":
     # Initial state is locked
     servo.start(get_duty_cycle(LOCK_ANGLE))
+    lock_door()
     lock_state = LOCK
 
     try:
