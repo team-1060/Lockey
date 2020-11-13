@@ -25,6 +25,7 @@ UNLOCK = 2
 LOCK_ANGLE = 0
 UNLOCK_ANGLE = 90
 
+LOCK_VPIN = 0
 SERVO_PIN = 14
 PWM_FREQ = 50
 
@@ -39,7 +40,7 @@ lock_state = None
 timer_start = None
 
 
-@blynk.handle_event("write V0")
+@blynk.handle_event(f"write V{LOCK_VPIN}")
 def write_lock_virtual_pin_handler(pin, values):
     value = int(values[0])
 
