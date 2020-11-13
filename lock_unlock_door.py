@@ -13,7 +13,7 @@ UNLOCK sends a value of 2
 
 import blynklib
 import RPi.GPIO as GPIO
-from time import sleep
+from time import sleep, time
 
 BLYNK_AUTH = "OXC2SHosxUj-wNyaeRMpEyd-JhHX7Vv9"
 
@@ -28,10 +28,15 @@ UNLOCK_ANGLE = 90
 SERVO_PIN = 14
 PWM_FREQ = 50
 
+AUTO_UNLOCK_TIMER_LEN = 5 * 60
+
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(SERVO_PIN, GPIO.OUT)
 
 servo = GPIO.PWM(SERVO_PIN, PWM_FREQ)
+
+lock_state = None
+timer_start = None
 
 
 @blynk.handle_event("write V0")
@@ -58,7 +63,10 @@ def lock_door():
 def unlock_door():
     move_servo_to_angle(UNLOCK_ANGLE)
 
-    global lock_state
+    global lock_state, timer_start
+    if lock_state == LOCK:
+        timer_start = time()
+
     lock_state = UNLOCK
 
     print("Door has been unlocked")
@@ -83,6 +91,11 @@ if __name__ == "__main__":
     try:
         while True:
             blynk.run()
+            if lock_state == UNLOCK:
+                diff = time() - timer_start
+                if diff > AUTO_UNLOCK_TIMER_LEN:
+                    lock_door()
+
     finally:
         servo.stop()
         GPIO.cleanup()
