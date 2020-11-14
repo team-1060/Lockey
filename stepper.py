@@ -1,6 +1,7 @@
 import time
 import board
 import digitalio
+import blynklib
  
 enable_pin = digitalio.DigitalInOut(board.D18)
 coil_A_1_pin = digitalio.DigitalInOut(board.D4)
