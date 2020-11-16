@@ -29,7 +29,7 @@ LOCK_VPIN = 0
 SERVO_PIN = 14
 PWM_FREQ = 50
 
-AUTO_UNLOCK_TIMER_LEN = 5 * 60
+AUTO_UNLOCK_TIMER_LEN = 30
 
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(SERVO_PIN, GPIO.OUT)
@@ -37,7 +37,7 @@ GPIO.setup(SERVO_PIN, GPIO.OUT)
 servo = GPIO.PWM(SERVO_PIN, PWM_FREQ)
 
 lock_state = None
-timer_start = None
+auto_lock_timer_start = None
 
 
 @blynk.handle_event(f"write V{LOCK_VPIN}")
@@ -58,18 +58,18 @@ def lock_door():
     global lock_state
     lock_state = LOCK
 
+    update_blynk_switch(LOCK_VPIN, LOCK)
     print("Door has been locked")
 
 
 def unlock_door():
     move_servo_to_angle(UNLOCK_ANGLE)
 
-    global lock_state, timer_start
-    if lock_state == LOCK:
-        timer_start = time()
-
+    global lock_state, auto_lock_timer_start
+    auto_lock_timer_start = time()
     lock_state = UNLOCK
 
+    update_blynk_switch(LOCK_VPIN, UNLOCK)
     print("Door has been unlocked")
 
 
@@ -83,17 +83,24 @@ def get_duty_cycle(angle):
     return angle / 18 + 2.5
 
 
-if __name__ == "__main__":
-    # Initial state is locked
-    servo.start(get_duty_cycle(LOCK_ANGLE))
-    lock_door()
-    lock_state = LOCK
+def update_blynk_switch(pin, state):
+    blynk.virtual_write(pin, state)
 
+
+if __name__ == "__main__":
     try:
+        # Initial state is locked
+        servo.start(get_duty_cycle(LOCK_ANGLE))
+
+        # Initiate Blynk once before running lock_door so button can be changed
+        blynk.run()
+        lock_door()
+        lock_state = LOCK
+
         while True:
             blynk.run()
             if lock_state == UNLOCK:
-                diff = time() - timer_start
+                diff = time() - auto_lock_timer_start
                 if diff > AUTO_UNLOCK_TIMER_LEN:
                     lock_door()
 
