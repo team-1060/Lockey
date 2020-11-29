@@ -1,6 +1,7 @@
 from time import time
 
 import blynklib
+
 import RPi.GPIO as GPIO
 
 from servo import Servo
@@ -13,11 +14,13 @@ blynk = blynklib.Blynk(BLYNK_AUTH)
 # Virtual Pins
 LOCK_CONTROL_VPIN = 0
 DOOR_CONTROL_VPIN = 1
-DOOR_UNLOCKED_FOR_VPIN = 2
-DOOR_OPEN_FOR_VPIN = 3
-AUTO_LOCK_ENABLE_VPIN = 4
-AUTO_LOCK_TIME_VPIN = 5
-DOOR_OPEN_NOTIF_TIME_VPIN = 6
+DOOR_STATUS_VPIN = 2
+LOCK_STATUS_VPIN = 3
+DOOR_OPEN_FOR_VPIN = 4
+DOOR_UNLOCKED_FOR_VPIN = 5
+AUTO_LOCK_ENABLE_VPIN = 6
+AUTO_LOCK_TIME_VPIN = 7
+DOOR_OPEN_NOTIF_TIME_VPIN = 8
 
 # Lock
 LOCK = 1
@@ -45,18 +48,12 @@ lock_state = None
 door_last_unlocked_time = time()
 auto_lock_timer = time()
 auto_lock_enabled = False
-auto_lock_timeout = 5
+auto_lock_timeout = 1 * 60
 
 door_state = None
 door_last_opened_time = time()
-door_open_notification_timeout = 5
+door_open_notification_timeout = 1 * 60
 sent_door_open_notification = False
-
-# Sync app state
-@blynk.handle_event("connect")
-def connect_handler():
-    for pin in range(7):
-        blynk.virtual_sync(pin)
 
 
 # SETTINGS
@@ -94,20 +91,20 @@ def door_open_notif_time_handler(pin, values):
 
 
 # STATUS DISPLAYS
-@blynk.handle_event(f"read V{DOOR_UNLOCKED_FOR_VPIN}")
-def door_unlocked_for_handler(pin):
-    time_unlocked_sec = time() - door_last_unlocked_time
-    time_unlocked = int(time_unlocked_sec) // 60
-
-    blynk.virtual_write(pin, time_unlocked)
-
-
 @blynk.handle_event(f"read V{DOOR_OPEN_FOR_VPIN}")
 def door_open_for_handler(pin):
     time_opened_sec = time() - door_last_opened_time
     time_opened = int(time_opened_sec) // 60
 
     blynk.virtual_write(pin, time_opened)
+
+
+@blynk.handle_event(f"read V{DOOR_UNLOCKED_FOR_VPIN}")
+def door_unlocked_for_handler(pin):
+    time_unlocked_sec = time() - door_last_unlocked_time
+    time_unlocked = int(time_unlocked_sec) // 60
+
+    blynk.virtual_write(pin, time_unlocked)
 
 
 # LOCK (SERVO)
@@ -131,7 +128,9 @@ def lock_door():
 
     global lock_state
 
+    blynk.virtual_write(LOCK_STATUS_VPIN, "LOCKING")
     servo.move_to_angle(LOCK_ANGLE)
+    blynk.virtual_write(LOCK_STATUS_VPIN, "LOCKED")
 
     lock_state = LOCK
     update_blynk_switch(LOCK_CONTROL_VPIN, LOCK)
@@ -142,7 +141,9 @@ def lock_door():
 def unlock_door():
     global lock_state, door_last_unlocked_time, auto_lock_timer
 
+    blynk.virtual_write(LOCK_STATUS_VPIN, "UNLOCKING")
     servo.move_to_angle(UNLOCK_ANGLE)
+    blynk.virtual_write(LOCK_STATUS_VPIN, "UNLOCKED")
 
     lock_state = UNLOCK
     door_last_unlocked_time = auto_lock_timer = time()
@@ -169,7 +170,9 @@ def door_control_handler(pin, values):
 def close_door():
     global door_state, auto_lock_timer
 
+    blynk.virtual_write(DOOR_STATUS_VPIN, "CLOSING")
     stepper.move_anti_clockwise_steps(STEPPER_STEPS)
+    blynk.virtual_write(DOOR_STATUS_VPIN, "CLOSED")
 
     door_state = CLOSE
     auto_lock_timer = time()
@@ -180,13 +183,13 @@ def close_door():
 
 def open_door():
     if lock_state == LOCK:
-        blynk.notify("Cannot open door when door is locked!")
-        update_blynk_switch(DOOR_CONTROL_VPIN, CLOSE)
-        return
+        unlock_door()
 
     global door_state, door_last_opened_time, sent_door_open_notification
 
+    blynk.virtual_write(DOOR_STATUS_VPIN, "OPENING")
     stepper.move_clockwise_steps(STEPPER_STEPS)
+    blynk.virtual_write(DOOR_STATUS_VPIN, "OPEN")
 
     door_state = OPEN
     door_last_opened_time = time()
