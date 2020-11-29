@@ -1,77 +1,37 @@
-'''
-    Stepper Motor interfacing with Raspberry Pi
-    http:///www.electronicwings.com
-'''
-import RPi.GPIO as GPIO
 from time import sleep
-import sys
-import blynklib
 
-#assign GPIO pins for motor
-motor_channel = (29,31,33,35)
-GPIO.setwarnings(False)
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(motor_channel, GPIO.OUT)
-auth_token = '4JR18qzs1AWkedrhF65mjwuASpBMpeGs'
+import RPi.GPIO as GPIO
 
-# Initialize Blynk
 
-blynk = blynklib.Blynk(auth_token)
+class Stepper:
+    def __init__(self, motor_channel):
+        self.motor_channel = motor_channel
+        GPIO.setup(motor_channel, GPIO.OUT)
 
-@blynk.handle_event('write V1')
-def write_handler_pin_handler(pin, value):
-    Doorstep = (format(value[0]))
-    if Doorstep =="1":
-        print("open call")
-        stepper('c')
-        print("Door open")
-    elif Doorstep =="2":
-        print("open call")
-        stepper('a')
-        print("Door closed")
+    def move_clockwise_steps(self, steps):
+        for _ in range(steps):
+            self.step_clockwise()
 
-def stepper(direction):
-    x=0
-    y=1540
-    while x<y:
-        try:
-            if(direction == 'c'):
-                print('motor running clockwise\n')
-                GPIO.output(motor_channel, (GPIO.HIGH,GPIO.LOW,GPIO.LOW,GPIO.HIGH))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.HIGH,GPIO.HIGH,GPIO.LOW,GPIO.LOW))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.LOW,GPIO.HIGH,GPIO.HIGH,GPIO.LOW))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.LOW,GPIO.LOW,GPIO.HIGH,GPIO.HIGH))
-                sleep(0.002)
-                x=x+1
+    def step_clockwise(self):
+        GPIO.output(self.motor_channel, (GPIO.HIGH, GPIO.LOW, GPIO.LOW, GPIO.HIGH))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.HIGH, GPIO.HIGH, GPIO.LOW, GPIO.LOW))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.LOW, GPIO.HIGH, GPIO.HIGH, GPIO.LOW))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.LOW, GPIO.LOW, GPIO.HIGH, GPIO.HIGH))
+        sleep(0.002)
 
-            elif(direction == 'a'):
-                print('motor running anti-clockwise\n')
-                GPIO.output(motor_channel, (GPIO.HIGH,GPIO.LOW,GPIO.LOW,GPIO.HIGH))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.LOW,GPIO.LOW,GPIO.HIGH,GPIO.HIGH))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.LOW,GPIO.HIGH,GPIO.HIGH,GPIO.LOW))
-                sleep(0.002)
-                GPIO.output(motor_channel, (GPIO.HIGH,GPIO.HIGH,GPIO.LOW,GPIO.LOW))
-                sleep(0.002)
-                x=x+1
+    def move_anti_clockwise_steps(self, steps):
+        for _ in range(steps):
+            self.step_anti_clockwise()
 
-                
-        #press ctrl+c for keyboard interrupt
-        except KeyboardInterrupt:
-            #query for setting motor direction or exit
-            motor_direction = input('select motor direction a=anticlockwise, c=clockwise or q=exit: ')
-            #check for exit
-            if(motor_direction == 'q'):
-                print('motor stopped')
-                sys.exit(0)
-try:
-    while True:
-        blynk.run()
-
-except KeyboardInterrupt:
-    print("Quit")
-
+    def step_anti_clockwise(self):
+        GPIO.output(self.motor_channel, (GPIO.HIGH, GPIO.LOW, GPIO.LOW, GPIO.HIGH))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.LOW, GPIO.LOW, GPIO.HIGH, GPIO.HIGH))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.LOW, GPIO.HIGH, GPIO.HIGH, GPIO.LOW))
+        sleep(0.002)
+        GPIO.output(self.motor_channel, (GPIO.HIGH, GPIO.HIGH, GPIO.LOW, GPIO.LOW))
+        sleep(0.002)
