@@ -12,7 +12,8 @@ motor_channel = (29,31,33,35)
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(motor_channel, GPIO.OUT)
-auth_token = '4JR18qzs1AWkedrhF65mjwuASpBMpeGs'
+#auth_token = '4JR18qzs1AWkedrhF65mjwuASpBMpeGs'#rpiHOU
+auth_token = "OXC2SHosxUj-wNyaeRMpEyd-JhHX7Vv9" #rpiDAL
 
 # Initialize Blynk
 
