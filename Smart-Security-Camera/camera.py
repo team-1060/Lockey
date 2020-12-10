@@ -1,49 +1,71 @@
-import cv2
-from imutils.video.pivideostream import PiVideoStream
-import imutils
 import time
+
+import cv2
 import numpy as np
+from imutils.video.pivideostream import PiVideoStream
+
+CLASSIFIER_MIN_NEIGHBORS = 5
+CLASSIFIER_MIN_OBJECT_SIZE = 30
+CLASSIFIER_IMAGE_SCALE_FACTOR = 1.1
+
+BOUNDING_BOX_COLOR = (0, 255, 0)
+BOUNDING_BOX_THICKNESS = 2
+
 
 class VideoCamera(object):
-    def __init__(self, flip = False):
+    def __init__(self, flip_image=False):
         self.vs = PiVideoStream().start()
-        self.flip = flip
+        self.flip_image = flip_image
         time.sleep(2.0)
 
     def __del__(self):
         self.vs.stop()
 
-    def flip_if_needed(self, frame):
-        if self.flip:
+    def flip_image_if_needed(self, frame):
+        if self.flip_image:
             return np.flip(frame, 0)
+
         return frame
 
-    def get_frame(self):
+    def get_camera_frame(self):
         frame = self.flip_if_needed(self.vs.read())
-        ret, jpeg = cv2.imencode('.jpg', frame)
-        return jpeg.tobytes()
+        _, jpeg_frame = cv2.imencode(".jpg", frame)
 
-    def get_object(self, classifier):
-        found_objects = False
-        frame = self.flip_if_needed(self.vs.read()).copy() 
+        return jpeg_frame.tobytes()
+
+    def get_object_in_frame(self, classifier):
+        found_objects_in_frame = False
+
+        # Flip the frame if needed (the camera is mounted upside-down on the door)
+        frame = self.flip_if_needed(self.vs.read()).copy()
+
+        # Convert image to grayscale
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
         objects = classifier.detectMultiScale(
             gray,
-            scaleFactor=1.1,
-            minNeighbors=5,
-            minSize=(30, 30),
-            flags=cv2.CASCADE_SCALE_IMAGE
+            minNeighbors=CLASSIFIER_MIN_NEIGHBORS,
+            minSize=(CLASSIFIER_MIN_OBJECT_SIZE, CLASSIFIER_MIN_OBJECT_SIZE),
+            scaleFactor=CLASSIFIER_IMAGE_SCALE_FACTOR,
+            flags=cv2.CASCADE_SCALE_IMAGE,
         )
 
         if len(objects) > 0:
-            found_objects = True
+            found_objects_in_frame = True
 
-        # Draw a rectangle around the objects
+        # Draw a bounding box around the objects
         for (x, y, w, h) in objects:
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            start_point = (x, y)
+            end_point = (x + w, y + h)
 
-        ret, jpeg = cv2.imencode('.jpg', frame)
-        return (jpeg.tobytes(), found_objects)
+            cv2.rectangle(
+                frame,
+                start_point,
+                end_point,
+                BOUNDING_BOX_COLOR,
+                BOUNDING_BOX_THICKNESS,
+            )
 
+        _, jpeg_frame = cv2.imencode(".jpg", frame)
 
+        return (jpeg_frame.tobytes(), found_objects_in_frame)
